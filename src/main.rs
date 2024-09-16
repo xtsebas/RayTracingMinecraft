@@ -12,6 +12,7 @@ mod camera;
 mod light;
 mod material;
 mod texture;
+mod cube;
 
 use framebuffer::Framebuffer;
 use sphere::Sphere;
@@ -20,9 +21,31 @@ use ray_intersect::{Intersect, RayIntersect};
 use camera::Camera;
 use light::Light;
 use material::Material;
+use cube::Cube;
 
 const ORIGIN_BIAS: f32 = 1e-4;
 const SKYBOX_COLOR: Color = Color::new(68, 142, 228);
+
+const RUBBER: Material = Material::new(
+    Color::new(255, 0, 0), // Red color for rubber
+    50.0,
+    [0.9, 0.1, 0.0, 0.0],
+    0.0,
+);
+
+const BROWN_RUBBER: Material = Material::new(
+    Color::new(139, 69, 19), // Brown color for brown rubber
+    50.0,
+    [0.4, 0.2, 0.0, 0.0],
+    0.0,
+);
+
+const GRAY_RUBBER: Material = Material::new(
+    Color::new(128, 128, 128), // Gray color for gray rubber
+    50.0,
+    [0.1, 0.9, 0.0, 0.0],
+    0.0,
+);
 
 fn offset_origin(intersect: &Intersect, direction: &Vec3) -> Vec3 {
     let offset = intersect.normal * ORIGIN_BIAS;
@@ -67,7 +90,7 @@ fn refract(incident: &Vec3, normal: &Vec3, eta_t: f32) -> Vec3 {
 fn cast_shadow(
     intersect: &Intersect,
     light: &Light,
-    objects: &[Sphere],
+    objects: &[Cube],
 ) -> f32 {
     let light_dir = (light.position - intersect.point).normalize();
     let light_distance = (light.position - intersect.point).magnitude();
@@ -90,7 +113,7 @@ fn cast_shadow(
 pub fn cast_ray(
     ray_origin: &Vec3,
     ray_direction: &Vec3,
-    objects: &[Sphere],
+    objects: &[Cube],
     light: &Light,
     depth: u32, // this value should initially be 0
                 // and should be increased by 1 in each recursion
@@ -149,7 +172,7 @@ pub fn cast_ray(
     (diffuse + specular) * (1.0 - reflectivity - transparency) + (reflect_color * reflectivity) + (refract_color * transparency)
 }
 
-pub fn render(framebuffer: &mut Framebuffer, objects: &[Sphere], camera: &Camera, light: &Light) {
+pub fn render(framebuffer: &mut Framebuffer, objects: &[Cube], camera: &Camera, light: &Light) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
@@ -208,19 +231,6 @@ fn main() {
     window.set_position(500, 500);
     window.update();
 
-    // let rubber = Material::new(
-    //     Color::new(255, 100, 80),
-    //     1.0,
-    //     [0.9, 0.1, 0.0, 0.0],
-    //     0.0,
-    // );
-
-    let rubber = Material::new_with_texture(
-        1.0,
-        [0.9, 0.1, 0.0, 0.0],
-        0.0,
-    );
-
     let ivory = Material::new(
         Color::new(100, 100, 80),
         50.0,
@@ -236,16 +246,34 @@ fn main() {
     );
 
     let objects = [
-        Sphere { center: Vec3::new(0.0, 0.0, 0.0), radius: 1.0, material: rubber },
-        Sphere { center: Vec3::new(-1.0, -1.0, 1.5), radius: 0.5, material: ivory },
-        Sphere { center: Vec3::new(-0.3, 0.3, 1.5), radius: 0.3, material: glass },
+        //pared izquierda
+        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 1.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 3.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 5.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 7.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(-4.0, -1.0, -1.0), max: Vec3::new(-2.0, 1.0, 1.0), material: GRAY_RUBBER },
+        Cube { min: Vec3::new(-2.0, -1.0, -1.0), max: Vec3::new(0.0, 1.0, 1.0), material: GRAY_RUBBER },
+
+        //puerta
+        Cube { min: Vec3::new(0.0, -1.0, -1.0), max: Vec3::new(2.0, 3.0, 1.0), material: RUBBER },
+        
+        //pared derecha
+        Cube { min: Vec3::new(2.0, -1.0, -1.0), max: Vec3::new(4.0, 1.0, 1.0), material: GRAY_RUBBER },
+        Cube { min: Vec3::new(4.0, -1.0, -1.0), max: Vec3::new(6.0, 1.0, 1.0), material: GRAY_RUBBER },
+        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 1.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 3.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 5.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 7.0, 1.0), material: BROWN_RUBBER },
     ];
 
     // Initialize camera
     let mut camera = Camera::new(
-        Vec3::new(0.0, 0.0, 5.0),  // eye: Initial camera position
-        Vec3::new(0.0, 0.0, 0.0),  // center: Point the camera is looking at (origin)
-        Vec3::new(0.0, 1.0, 0.0)   // up: World up vector
+        Vec3::new(0.0, 0.0, 10.0),  // eye: Move the camera further back
+        Vec3::new(0.0, 0.0, 0.0),   // center: Point the camera is looking at (origin)
+        Vec3::new(0.0, 1.0, 0.0),   // up: World up vector
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, -1.0),
+        60.0,
     );
     let rotation_speed = PI/50.0;
 
@@ -268,11 +296,19 @@ fn main() {
         if window.is_key_down(Key::Right) {
             camera.orbit(-rotation_speed, 0.0);
         }
-        if window.is_key_down(Key::Up) {
+        if window.is_key_down(Key::W) {
             camera.orbit(0.0, -rotation_speed);
         }
-        if window.is_key_down(Key::Down) {
+        if window.is_key_down(Key::S) {
             camera.orbit(0.0, rotation_speed);
+        }
+
+        if window.is_key_down(Key::Up) {
+            camera.zoom(0.5);  // Acercar cámara (zoom in)
+        }
+    
+        if window.is_key_down(Key::Down) {
+            camera.zoom(-0.5); // Alejar cámara (zoom out)
         }
 
         if camera.is_changed() {

@@ -16,7 +16,7 @@ pub struct Material {
 }
 
 impl Material {
-  pub fn new(
+  pub const fn new(
     diffuse: Color,
     specular: f32,
     albedo: [f32; 4],
@@ -31,7 +31,7 @@ impl Material {
     }
   }
 
-  pub fn new_with_texture(
+  pub const fn new_with_texture(
     specular: f32,
     albedo: [f32; 4],
     refractive_index: f32,

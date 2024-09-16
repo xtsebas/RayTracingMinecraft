@@ -6,15 +6,21 @@ pub struct Camera {
     pub center: Vec3,
     pub up: Vec3,
     has_changed: bool,
+    pub pos: Vec3,   // Posición de la cámara en el espacio 3D
+    pub dir: Vec3,   // Dirección de la cámara (hacia adelante)
+    pub fov: f32,  
 }
 
 impl Camera {
-    pub fn new(eye: Vec3, center: Vec3, up: Vec3) -> Self {
+    pub fn new(eye: Vec3, center: Vec3, up: Vec3, pos: Vec3, dir: Vec3, fov: f32) -> Self {
         Camera {
             eye,
             center,
             up,
             has_changed: true,
+            pos,
+            dir,
+            fov
        }
     }
 
@@ -59,5 +65,11 @@ impl Camera {
             return true;
         }
         false
+    }
+
+    pub fn zoom(&mut self, amount: f32) {
+        let direction = (self.center - self.eye).normalize(); // Direccion de la cámara
+        self.eye += direction * amount; // Ajustar la posición de la cámara en base a la dirección
+        self.has_changed = true; // Marcar que ha habido un cambio
     }
 }
