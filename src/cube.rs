@@ -29,6 +29,40 @@ impl Cube {
         }
         Vec3::new(0.0, 0.0, 1.0)
     }
+
+    fn get_uv(&self, point: Vec3) -> (f32, f32) {
+        if (point.y - self.max.y).abs() < 1e-4 {
+            // Cara superior
+            let u = (point.x - self.min.x) / (self.max.x - self.min.x);
+            let v = (point.z - self.min.z) / (self.max.z - self.min.z);
+            (u, v)
+        } else if (point.y - self.min.y).abs() < 1e-4 {
+            // Cara inferior
+            let u = (point.x - self.min.x) / (self.max.x - self.min.x);
+            let v = (point.z - self.min.z) / (self.max.z - self.min.z);
+            (u, v)
+        } else if (point.x - self.min.x).abs() < 1e-4 {
+            // Cara izquierda
+            let u = (point.z - self.min.z) / (self.max.z - self.min.z);
+            let v = (point.y - self.min.y) / (self.max.y - self.min.y);
+            (u, v)
+        } else if (point.x - self.max.x).abs() < 1e-4 {
+            // Cara derecha
+            let u = (point.z - self.min.z) / (self.max.z - self.min.z);
+            let v = (point.y - self.min.y) / (self.max.y - self.min.y);
+            (u, v)
+        } else if (point.z - self.min.z).abs() < 1e-4 {
+            // Cara frontal
+            let u = (point.x - self.min.x) / (self.max.x - self.min.x);
+            let v = (point.y - self.min.y) / (self.max.y - self.min.y);
+            (u, v)
+        } else {
+            // Cara trasera
+            let u = (point.x - self.min.x) / (self.max.x - self.min.x);
+            let v = (point.y - self.min.y) / (self.max.y - self.min.y);
+            (u, v)
+        }
+    }       
 }
 
 impl RayIntersect for Cube {
@@ -75,6 +109,9 @@ impl RayIntersect for Cube {
 
         let intersection_point = ray_origin + ray_dir * tmin;
 
+        // Calcula las coordenadas UV usando la nueva función get_uv
+        let (u, v) = self.get_uv(intersection_point);
+
         // Devuelve una intersección con las propiedades calculadas
         Intersect {
             point: intersection_point,
@@ -82,8 +119,8 @@ impl RayIntersect for Cube {
             normal: self.calculate_normal(intersection_point),
             material: self.material.clone(),
             is_intersecting: true,
-            u: 0.0,
-            v: 0.0,
+            u: u,  // Asigna el valor de u calculado
+            v: v,  // Asigna el valor de v calculado
         }
     }
 }

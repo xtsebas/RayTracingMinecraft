@@ -2,11 +2,12 @@ use nalgebra_glm::{Vec3, normalize};
 use minifb::{Key, Window, WindowOptions};
 use std::time::Duration;
 use std::f32::consts::PI;
+use std::sync::Arc;
+use once_cell::sync::Lazy;
 // use rand::{Rng};
 
 mod framebuffer;
 mod ray_intersect;
-mod sphere; 
 mod color;
 mod camera;
 mod light;
@@ -15,37 +16,64 @@ mod texture;
 mod cube;
 
 use framebuffer::Framebuffer;
-use sphere::Sphere;
 use color::Color;
 use ray_intersect::{Intersect, RayIntersect};
 use camera::Camera;
 use light::Light;
 use material::Material;
 use cube::Cube;
+use texture::Texture;
 
 const ORIGIN_BIAS: f32 = 1e-4;
 const SKYBOX_COLOR: Color = Color::new(68, 142, 228);
 
-const RUBBER: Material = Material::new(
-    Color::new(255, 0, 0), // Red color for rubber
-    50.0,
-    [0.9, 0.1, 0.0, 0.0],
-    0.0,
-);
+static RUBBER_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/wood.jpg")));
+static OLDWOOD_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/oldwood.png")));
+static DOOR_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/door.png")));
+static GLASS_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/glass.png")));
+static STONE_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/cobblestone.jpg")));
 
-const BROWN_RUBBER: Material = Material::new(
-    Color::new(139, 69, 19), // Brown color for brown rubber
-    50.0,
-    [0.4, 0.2, 0.0, 0.0],
-    0.0,
-);
+pub static RUBBER: Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,                        // Specular
+        [0.9, 0.1, 0.0, 0.0],        // Albedo
+        0.0,                         // Refractive index
+        RUBBER_TEXTURE.clone()        // Textura para el material
+    )
+});
 
-const GRAY_RUBBER: Material = Material::new(
-    Color::new(128, 128, 128), // Gray color for gray rubber
-    50.0,
-    [0.1, 0.9, 0.0, 0.0],
-    0.0,
-);
+pub static OLDWOOD: Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,                        // Specular
+        [0.9, 0.1, 0.0, 0.0],        // Albedo
+        0.0,                         // Refractive index
+        OLDWOOD_TEXTURE.clone()        // Textura para el material
+    )
+});
+pub static DOOR : Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,                        // Specular
+        [0.9, 0.1, 0.0, 0.0],        // Albedo
+        0.0,                         // Refractive index
+        DOOR_TEXTURE.clone()        // Textura para el material
+    )
+});
+pub static GLASS : Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,
+        [0.9, 0.1, 0.0, 0.5],        // Albedo (último valor es el componente alfa para transparencia)
+        1.5,                    // Refractive index
+        GLASS_TEXTURE.clone()        // Textura para el material
+    )
+});
+pub static STONE : Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,                        // Specular
+        [0.9, 0.1, 0.0, 0.0],        // Albedo
+        0.0,                   // Refractive index
+        STONE_TEXTURE.clone()        // Textura para el material
+    )
+});
 
 fn offset_origin(intersect: &Intersect, direction: &Vec3) -> Vec3 {
     let offset = intersect.normal * ORIGIN_BIAS;
@@ -221,7 +249,7 @@ fn main() {
 
     let mut framebuffer = Framebuffer::new(framebuffer_width, framebuffer_height);
     let mut window = Window::new(
-        "Rust Graphics - Raytracer Example",
+        "Diorama",
         window_width,
         window_height,
         WindowOptions::default(),
@@ -231,39 +259,141 @@ fn main() {
     window.set_position(500, 500);
     window.update();
 
-    let ivory = Material::new(
-        Color::new(100, 100, 80),
-        50.0,
-        [0.6, 0.3, 0.6, 0.0],
-        0.0,
-    );
-
-    let glass = Material::new(
-        Color::new(255, 255, 255),
-        1425.0,
-        [0.0, 10.0, 0.5, 0.5],
-        0.3,
-    );
-
     let objects = [
+        // Columna de 4 bloques
+        Cube { min: Vec3::new(-8.0, 7.0, -1.0), max: Vec3::new(-6.0, 5.0, 1.0), material: (*STONE).clone() }, // Bloque superior
+        Cube { min: Vec3::new(-8.0, 5.0, -1.0), max: Vec3::new(-6.0, 3.0, 1.0), material: (*OLDWOOD).clone() }, // Segundo bloque
+        Cube { min: Vec3::new(-8.0, 3.0, -1.0), max: Vec3::new(-6.0, 1.0, 1.0), material: (*OLDWOOD).clone() }, // Tercer bloque
+        Cube { min: Vec3::new(-8.0, 1.0, -1.0), max: Vec3::new(-6.0, -1.0, 1.0), material: (*OLDWOOD).clone() }, // Bloque inferior
+
+        Cube { min: Vec3::new(-8.0, 7.0, -9.0), max: Vec3::new(-6.0, 5.0, -7.0), material: (*STONE).clone() }, // Bloque superior
+        Cube { min: Vec3::new(-8.0, 5.0, -9.0), max: Vec3::new(-6.0, 3.0, -7.0), material: (*OLDWOOD).clone() },
+        Cube { min: Vec3::new(-8.0, 3.0, -9.0), max: Vec3::new(-6.0, 1.0, -7.0), material: (*OLDWOOD).clone() }, // Tercer bloque
+        Cube { min: Vec3::new(-8.0, 1.0, -9.0), max: Vec3::new(-6.0, -1.0, -7.0), material: (*OLDWOOD).clone() }, // Bloque inferior
+
         //pared izquierda
-        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 1.0, 1.0), material: BROWN_RUBBER },
-        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 3.0, 1.0), material: BROWN_RUBBER },
-        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 5.0, 1.0), material: BROWN_RUBBER },
-        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 7.0, 1.0), material: BROWN_RUBBER },
-        Cube { min: Vec3::new(-4.0, -1.0, -1.0), max: Vec3::new(-2.0, 1.0, 1.0), material: GRAY_RUBBER },
-        Cube { min: Vec3::new(-2.0, -1.0, -1.0), max: Vec3::new(0.0, 1.0, 1.0), material: GRAY_RUBBER },
+        Cube { min: Vec3::new(-2.0, 3.0, -1.0), max: Vec3::new(0.0, 5.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-4.0, 3.0, -1.0), max: Vec3::new(-2.0, 5.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-6.0, 3.0, -1.0), max: Vec3::new(-4.0, 5.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-6.0, 1.0, -1.0), max: Vec3::new(-4.0, 3.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-6.0, -1.0, -1.0), max: Vec3::new(-4.0, 1.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-4.0, 1.0, -1.0), max: Vec3::new(-2.0, 3.0, 1.0), material: (*GLASS).clone() },
+        Cube { min: Vec3::new(-4.0, -1.0, -1.0), max: Vec3::new(-2.0, 1.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-2.0, -1.0, -1.0), max: Vec3::new(0.0, 1.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-2.0, 1.0, -1.0), max: Vec3::new(0.0, 3.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(0.0, 3.0, -1.0), max: Vec3::new(2.0, 5.0, 1.0), material: (*RUBBER).clone() },
+
+        Cube { min: Vec3::new(-2.0, 3.0, -9.0), max: Vec3::new(0.0, 5.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-4.0, 3.0, -9.0), max: Vec3::new(-2.0, 5.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-6.0, 3.0, -9.0), max: Vec3::new(-4.0, 5.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-6.0, 1.0, -9.0), max: Vec3::new(-4.0, 3.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-6.0, -1.0, -9.0), max: Vec3::new(-4.0, 1.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-4.0, 1.0, -9.0), max: Vec3::new(-2.0, 3.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-4.0, -1.0, -9.0), max: Vec3::new(-2.0, 1.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-2.0, -1.0, -9.0), max: Vec3::new(0.0, 1.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-2.0, 1.0, -9.0), max: Vec3::new(0.0, 3.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(0.0, 3.0, -9.0), max: Vec3::new(2.0, 5.0, -7.0), material: (*RUBBER).clone() },
 
         //puerta
-        Cube { min: Vec3::new(0.0, -1.0, -1.0), max: Vec3::new(2.0, 3.0, 1.0), material: RUBBER },
+        Cube { min: Vec3::new(0.0, -1.0, -1.0), max: Vec3::new(2.0, 3.0, 1.0), material: (*DOOR).clone() },
+
+        Cube { min: Vec3::new(0.0, -1.0, -9.0), max: Vec3::new(2.0, 1.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(0.0, 1.0, -9.0), max: Vec3::new(2.0, 3.0, -7.0), material: (*RUBBER).clone() },
         
         //pared derecha
-        Cube { min: Vec3::new(2.0, -1.0, -1.0), max: Vec3::new(4.0, 1.0, 1.0), material: GRAY_RUBBER },
-        Cube { min: Vec3::new(4.0, -1.0, -1.0), max: Vec3::new(6.0, 1.0, 1.0), material: GRAY_RUBBER },
-        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 1.0, 1.0), material: BROWN_RUBBER },
-        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 3.0, 1.0), material: BROWN_RUBBER },
-        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 5.0, 1.0), material: BROWN_RUBBER },
-        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 7.0, 1.0), material: BROWN_RUBBER },
+        Cube { min: Vec3::new(6.0, 3.0, -1.0), max: Vec3::new(8.0, 5.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(4.0, 3.0, -1.0), max: Vec3::new(6.0, 5.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(2.0, 3.0, -1.0), max: Vec3::new(4.0, 5.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(2.0, 1.0, -1.0), max: Vec3::new(4.0, 3.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(2.0, -1.0, -1.0), max: Vec3::new(4.0, 1.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(4.0, 1.0, -1.0), max: Vec3::new(6.0, 3.0, 1.0), material: (*GLASS).clone() },
+        Cube { min: Vec3::new(4.0, -1.0, -1.0), max: Vec3::new(6.0, 1.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(6.0, -1.0, -1.0), max: Vec3::new(8.0, 1.0, 1.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(6.0, 1.0, -1.0), max: Vec3::new(8.0, 3.0, 1.0), material: (*RUBBER).clone() },
+
+        Cube { min: Vec3::new(6.0, 3.0, -9.0), max: Vec3::new(8.0, 5.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(4.0, 3.0, -9.0), max: Vec3::new(6.0, 5.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(2.0, 3.0, -9.0), max: Vec3::new(4.0, 5.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(2.0, 1.0, -9.0), max: Vec3::new(4.0, 3.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(2.0, -1.0, -9.0), max: Vec3::new(4.0, 1.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(4.0, 1.0, -9.0), max: Vec3::new(6.0, 3.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(4.0, -1.0, -9.0), max: Vec3::new(6.0, 1.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(6.0, -1.0, -9.0), max: Vec3::new(8.0, 1.0, -7.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(6.0, 1.0, -9.0), max: Vec3::new(8.0, 3.0, -7.0), material: (*RUBBER).clone() },
+
+        // Columna de 4 bloques (a la derecha)
+        Cube { min: Vec3::new(8.0, 5.0, -1.0), max: Vec3::new(10.0, 7.0, 1.0), material: (*STONE).clone() }, // Bloque superior
+        Cube { min: Vec3::new(8.0, 3.0, -1.0), max: Vec3::new(10.0, 5.0, 1.0), material: (*OLDWOOD).clone() }, // Segundo bloque
+        Cube { min: Vec3::new(8.0, 1.0, -1.0), max: Vec3::new(10.0, 3.0, 1.0), material: (*OLDWOOD).clone() }, // Tercer bloque
+        Cube { min: Vec3::new(8.0, -1.0, -1.0), max: Vec3::new(10.0, 1.0, 1.0), material: (*OLDWOOD).clone() }, // Bloque inferior
+
+        Cube { min: Vec3::new(8.0, 5.0, -9.0), max: Vec3::new(10.0, 7.0, -7.0), material: (*STONE).clone() }, // Bloque superior
+        Cube { min: Vec3::new(8.0, 3.0, -9.0), max: Vec3::new(10.0, 5.0, -7.0), material: (*OLDWOOD).clone() }, // Segundo bloque
+        Cube { min: Vec3::new(8.0, 1.0, -9.0), max: Vec3::new(10.0, 3.0, -7.0), material: (*OLDWOOD).clone() }, // Tercer bloque
+        Cube { min: Vec3::new(8.0, -1.0, -9.0), max: Vec3::new(10.0, 1.0, -7.0), material: (*OLDWOOD).clone() }, // Bloque inferior
+
+        // techo
+        Cube { min: Vec3::new(6.0, 5.0, -7.0), max: Vec3::new(8.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(6.0, 5.0, -5.0), max: Vec3::new(8.0, 7.0, -3.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(6.0, 5.0, -3.0), max: Vec3::new(8.0, 7.0, -1.0), material: (*STONE).clone() },
+
+        Cube { min: Vec3::new(8.0, 5.0, -7.0), max: Vec3::new(10.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(8.0, 5.0, -5.0), max: Vec3::new(10.0, 7.0, -3.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(8.0, 5.0, -3.0), max: Vec3::new(10.0, 7.0, -1.0), material: (*STONE).clone() },
+
+        Cube { min: Vec3::new(6.0, 5.0, -1.0), max: Vec3::new(8.0, 7.0, 1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(4.0, 5.0, -1.0), max: Vec3::new(6.0, 7.0, 1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(2.0, 5.0, -1.0), max: Vec3::new(4.0, 7.0, 1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(0.0, 5.0, -1.0), max: Vec3::new(2.0, 7.0, 1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-2.0, 5.0, -1.0), max: Vec3::new(0.0, 7.0, 1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-4.0, 5.0, -1.0), max: Vec3::new(-2.0, 7.0, 1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-6.0, 5.0, -1.0), max: Vec3::new(-4.0, 7.0, 1.0), material: (*STONE).clone() },
+
+        Cube { min: Vec3::new(6.0, 5.0, -7.0), max: Vec3::new(8.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(4.0, 5.0, -7.0), max: Vec3::new(6.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(2.0, 5.0, -7.0), max: Vec3::new(4.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(0.0, 5.0, -7.0), max: Vec3::new(2.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-2.0, 5.0, -7.0), max: Vec3::new(0.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-4.0, 5.0, -7.0), max: Vec3::new(-2.0, 7.0, -5.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-6.0, 5.0, -7.0), max: Vec3::new(-4.0, 7.0, -5.0), material: (*STONE).clone() },
+
+        Cube { min: Vec3::new(6.0, 5.0, -9.0), max: Vec3::new(8.0, 7.0, -7.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(4.0, 5.0, -9.0), max: Vec3::new(6.0, 7.0, -7.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(2.0, 5.0, -9.0), max: Vec3::new(4.0, 7.0, -7.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(0.0, 5.0, -9.0), max: Vec3::new(2.0, 7.0, -7.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-2.0, 5.0, -9.0), max: Vec3::new(0.0, 7.0, -7.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-4.0, 5.0, -9.0), max: Vec3::new(-2.0, 7.0, -7.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-6.0, 5.0, -9.0), max: Vec3::new(-4.0, 7.0, -7.0), material: (*STONE).clone() },
+
+        Cube { min: Vec3::new(-6.0, 5.0, -3.0), max: Vec3::new(-4.0, 7.0, -1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-6.0, 5.0, -5.0), max: Vec3::new(-4.0, 7.0, -3.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-6.0, 5.0, -7.0), max: Vec3::new(-4.0, 7.0, -5.0), material: (*STONE).clone() },
+
+        Cube { min: Vec3::new(-8.0, 5.0, -3.0), max: Vec3::new(-6.0, 7.0, -1.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-8.0, 5.0, -5.0), max: Vec3::new(-6.0, 7.0, -3.0), material: (*STONE).clone() },
+        Cube { min: Vec3::new(-8.0, 5.0, -7.0), max: Vec3::new(-6.0, 7.0, -5.0), material: (*STONE).clone() },
+
+        // pared lateral izquierda
+        Cube { min: Vec3::new(-8.0, 5.0, -5.0), max: Vec3::new(-6.0, 3.0, -3.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(-8.0, 5.0, -3.0), max: Vec3::new(-6.0, 3.0, -1.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(-8.0, 3.0, -5.0), max: Vec3::new(-6.0, 1.0, -3.0), material: (*GLASS).clone() }, 
+        Cube { min: Vec3::new(-8.0, 3.0, -3.0), max: Vec3::new(-6.0, 1.0, -1.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(-8.0, 1.0, -3.0), max: Vec3::new(-6.0, -1.0, -1.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(-8.0, 1.0, -5.0), max: Vec3::new(-6.0, -1.0, -3.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(-8.0, 1.0, -7.0), max: Vec3::new(-6.0, -1.0, -5.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(-8.0, 3.0, -7.0), max: Vec3::new(-6.0, 1.0, -5.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(-8.0, 5.0, -7.0), max: Vec3::new(-6.0, 3.0, -5.0), material: (*RUBBER).clone() }, 
+
+        // pared lateral Derecha
+        Cube { min: Vec3::new(8.0, 5.0, -5.0), max: Vec3::new(10.0, 3.0, -3.0), material: (*RUBBER).clone() },
+        Cube { min: Vec3::new(8.0, 5.0, -3.0), max: Vec3::new(10.0, 3.0, -1.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(8.0, 3.0, -5.0), max: Vec3::new(10.0, 1.0, -3.0), material: (*GLASS).clone() }, 
+        Cube { min: Vec3::new(8.0, 3.0, -3.0), max: Vec3::new(10.0, 1.0, -1.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(8.0, 1.0, -3.0), max: Vec3::new(10.0, -1.0, -1.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(8.0, 1.0, -5.0), max: Vec3::new(10.0, -1.0, -3.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(8.0, 1.0, -7.0), max: Vec3::new(10.0, -1.0, -5.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(8.0, 3.0, -7.0), max: Vec3::new(10.0, 1.0, -5.0), material: (*RUBBER).clone() }, 
+        Cube { min: Vec3::new(8.0, 5.0, -7.0), max: Vec3::new(10.0, 3.0, -5.0), material: (*RUBBER).clone() }, 
     ];
 
     // Initialize camera
@@ -275,13 +405,15 @@ fn main() {
         Vec3::new(0.0, 0.0, -1.0),
         60.0,
     );
+
     let rotation_speed = PI/50.0;
 
     let light = Light::new(
-        Vec3::new(1.0, -1.0, 5.0),
+        Vec3::new(20.0, 20.0, 20.0),
         Color::new(255, 255, 255),
         1.0
     );
+
 
     while window.is_open() {
         // listen to inputs
