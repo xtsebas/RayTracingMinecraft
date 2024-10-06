@@ -1,10 +1,12 @@
 use std::fmt;
+use std::ops::AddAssign;
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
 }
 
 impl Color {
@@ -70,5 +72,39 @@ impl Mul<f32> for Color {
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Color(r: {}, g: {}, b: {})", self.r, self.g, self.b)
+    }
+}
+
+impl Color {
+    // Método para sumar dos colores
+    pub fn add(&self, other: Color) -> Color {
+        Color::new(
+            (self.r + other.r).min(255),
+            (self.g + other.g).min(255),
+            (self.b + other.b).min(255),
+        )
+    }
+}
+
+impl AddAssign for Color {
+    fn add_assign(&mut self, other: Color) {
+        self.r = (self.r + other.r).min(255);
+        self.g = (self.g + other.g).min(255);
+        self.b = (self.b + other.b).min(255);
+    }
+}
+
+// En tu archivo color.rs o donde esté definida la estructura Color
+impl Color {
+    pub fn r(&self) -> u8 {
+        self.r
+    }
+
+    pub fn g(&self) -> u8 {
+        self.g
+    }
+
+    pub fn b(&self) -> u8 {
+        self.b
     }
 }

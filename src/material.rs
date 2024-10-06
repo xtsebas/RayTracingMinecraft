@@ -12,6 +12,8 @@ pub struct Material {
     pub refractive_index: f32,
     pub has_texture: bool,
     pub texture: Option<Arc<Texture>>,  // Campo opcional para la textura
+    pub emission_color: Option<Color>,  // Campo opcional para el color de emisión
+    pub emission_intensity: f32,
 }
 
 impl Material {
@@ -20,6 +22,8 @@ impl Material {
         specular: f32,
         albedo: [f32; 4],
         refractive_index: f32,
+        emission_color: Option<Color>,
+        emission_intensity: f32,
     ) -> Self {
         Material {
             diffuse,
@@ -28,6 +32,8 @@ impl Material {
             refractive_index,
             has_texture: false,
             texture: None,  // Sin textura
+            emission_color,
+            emission_intensity,
         }
     }
 
@@ -36,6 +42,8 @@ impl Material {
         albedo: [f32; 4],
         refractive_index: f32,
         texture: Arc<Texture>,  // Acepta una textura
+        emission_color: Option<Color>,
+        emission_intensity: f32,
     ) -> Self {
         Material {
             diffuse: Color::new(255, 255, 255), // Color predeterminado que será sobreescrito por la textura
@@ -44,6 +52,8 @@ impl Material {
             refractive_index,
             has_texture: true,
             texture: Some(texture),  // Asigna la textura proporcionada
+            emission_color,
+            emission_intensity,
         }
     }
 
@@ -66,6 +76,8 @@ impl Material {
             refractive_index: 0.0,
             has_texture: false,
             texture: None,  // Sin textura
+            emission_color: None,  // Sin color de emisión
+            emission_intensity: 0.0,
         }
     }
 }

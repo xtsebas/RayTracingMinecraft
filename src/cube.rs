@@ -63,6 +63,11 @@ impl Cube {
             (u, v)
         }
     }       
+
+    pub fn position(&self) -> Vec3 {
+        (self.min + self.max) / 2.0
+    }
+    
 }
 
 impl RayIntersect for Cube {

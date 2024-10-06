@@ -53,6 +53,19 @@ impl Texture {
       self.color_array[y * self.width + x]
     }
   }
+
+  pub fn get_color_uv(&self, u: f32, v: f32) -> Color {
+      // Asegúrate de que u y v estén en el rango [0, 1]
+      let u = u.clamp(0.0, 1.0);
+      let v = v.clamp(0.0, 1.0);
+
+      // Convertir (u, v) en coordenadas (x, y) dentro de la textura
+      let x = (u * (self.width as f32)) as usize;
+      let y = ((1.0 - v) * (self.height as f32)) as usize;  // Invertimos v porque en las imágenes el origen está en la esquina superior izquierda
+
+      // Obtener el color de la textura
+      self.get_color(x, y)
+  }
 }
 
 impl fmt::Debug for Texture {
