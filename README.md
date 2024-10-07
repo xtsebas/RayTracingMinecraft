@@ -41,3 +41,5 @@ cargo run
 
 ## VIDEO DE PRUEBA
 
+https://github.com/user-attachments/assets/8c798a59-6864-418d-b770-3a174a8e9c3d
+
