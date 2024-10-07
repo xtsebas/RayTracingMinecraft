@@ -1366,6 +1366,7 @@ dependencies = [
  "nalgebra-glm",
  "once_cell",
  "rand",
+ "rayon",
  "rodio",
 ]
 

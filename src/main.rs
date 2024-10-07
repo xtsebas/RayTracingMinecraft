@@ -35,6 +35,9 @@ static DOOR_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("as
 static GLASS_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/glass.png")));
 static STONE_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/cobblestone.jpg")));
 static SAND_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/sand.jpg")));
+static REDSTONE_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/redstone.jpg")));
+static DIAMOND_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/diamond.png")));
+static GLOWSTONE_TEXTURE: Lazy<Arc<Texture>> = Lazy::new(|| Arc::new(Texture::new("assets/glowstone.jpeg")));
 
 //Materiales
 pub static RUBBER: Lazy<Material> = Lazy::new(|| {
@@ -63,8 +66,8 @@ pub static DOOR : Lazy<Material> = Lazy::new(|| {
         [0.9, 0.1, 0.0, 0.0],        // Albedo
         0.0,                         // Refractive index
         DOOR_TEXTURE.clone(),        // Textura para el material
-        Some(Color::new(255, 255, 255)),  // Color de emisión
-        1.0
+        None,  // Color de emisión
+        0.0
     )
 });
 pub static GLASS : Lazy<Material> = Lazy::new(|| {
@@ -95,6 +98,36 @@ pub static SAND : Lazy<Material> = Lazy::new(|| {
         SAND_TEXTURE.clone(),        // Textura para el material
         None,
         0.0
+    )
+});
+pub static REDSTONE : Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,                        // Specular
+        [0.9, 0.1, 0.0, 0.0],        // Albedo
+        0.0,                   // Refractive index
+        REDSTONE_TEXTURE.clone(),        // Textura para el material
+        Some(Color::new(255, 0, 0)),  // Color de emisión
+        1.0
+    )
+});
+pub static DIAMOND : Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,                        // Specular
+        [0.9, 0.1, 0.0, 0.0],        // Albedo
+        0.0,                   // Refractive index
+        DIAMOND_TEXTURE.clone(),        // Textura para el material
+        Some(Color::new(0, 255, 255)),  // Color de emisión
+        1.0
+    )
+});
+pub static GLOWSTONE : Lazy<Material> = Lazy::new(|| {
+    Material::new_with_texture(
+        50.0,                        // Specular
+        [0.9, 0.1, 0.0, 0.0],        // Albedo
+        0.0,                   // Refractive index
+        GLOWSTONE_TEXTURE.clone(),        // Textura para el material
+        Some(Color::new(255, 255, 0)),  // Color de emisión
+        1.0
     )
 });
 
@@ -364,6 +397,10 @@ fn main() {
         Cube { min: Vec3::new(-8.0, 3.0, -9.0), max: Vec3::new(-6.0, 1.0, -7.0), material: (*OLDWOOD).clone() }, // Tercer bloque
         Cube { min: Vec3::new(-8.0, 1.0, -9.0), max: Vec3::new(-6.0, -1.0, -7.0), material: (*OLDWOOD).clone() }, // Bloque inferior
 
+        Cube { min: Vec3::new(-8.0, -1.0, 1.0), max: Vec3::new(-6.0, 1.0, 3.0), material: (*REDSTONE).clone() },
+        Cube { min: Vec3::new(-6.0, -1.0, 1.0), max: Vec3::new(-4.0, 1.0, 3.0), material: (*DIAMOND).clone() },
+        Cube { min: Vec3::new(-4.0, -1.0, 1.0), max: Vec3::new(-2.0, 1.0, 3.0), material: (*GLOWSTONE).clone() },
+
         //pared izquierda
         Cube { min: Vec3::new(-2.0, 3.0, -1.0), max: Vec3::new(0.0, 5.0, 1.0), material: (*RUBBER).clone() },
         Cube { min: Vec3::new(-4.0, 3.0, -1.0), max: Vec3::new(-2.0, 5.0, 1.0), material: (*RUBBER).clone() },
@@ -462,7 +499,7 @@ fn main() {
 
     // Piso
     for z in (-13.0 as i32..=5.0 as i32).step_by(2.0 as usize) {
-        for x in (-14.0 as i32..=14.0 as i32).step_by(2.0 as usize) {
+        for x in (-10.0 as i32..=10.0 as i32).step_by(2.0 as usize) {
             // Genera los cubos en las posiciones del perímetro
             objects.push(Cube {
                 min: Vec3::new(x as f32, -3.0, z as f32),
